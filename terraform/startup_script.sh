@@ -38,5 +38,5 @@ sudo adduser --disabled-password --gecos "" cryptostream
 sudo usermod -aG sudo cryptostream
 
 # git clone
-sudo -u cryptostream -H bash -c "cd /home/cryptostream && git clone https://github.com/dojun43/CryptoStream.git"
+sudo -u cryptostream -H bash -c "cd /home/cryptostream && git clone https://github.com/dojun43/CryptoStream-docker.git"
 sudo chown -R cryptostream:cryptostream /home/cryptostream/CryptoStream
