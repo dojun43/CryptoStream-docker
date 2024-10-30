@@ -1,0 +1,9 @@
+venv
+test
+.env
+
+private
+/terraform/.terraform*
+/terraform/terraform*
+
+src/__*

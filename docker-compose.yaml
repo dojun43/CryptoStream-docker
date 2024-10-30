@@ -1,0 +1,132 @@
+x-crptostream-common:
+  &crptostream-common
+  image: python:3.12
+  env_file:
+      - .env
+  volumes:
+    - ${CRPTOSTREAM_PROJ_DIR:-.}/conf:/CryptoStream/conf
+    - ${CRPTOSTREAM_PROJ_DIR:-.}/src:/CryptoStream/src
+    - ${CRPTOSTREAM_PROJ_DIR:-.}/logs:/CryptoStream/logs
+  working_dir: /CryptoStream
+  depends_on:
+    &crptostream-common-depends-on
+    redis:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: cryptostream
+      TZ: Asia/Seoul
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "cryptostream"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+    ports:
+      - 5432:5432
+    networks:
+      network_custom:
+        ipv4_address: 172.28.0.2
+
+  redis:
+    image: redis:7.2-bookworm
+    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 30s
+      retries: 50
+      start_period: 30s
+    restart: always
+    ports:
+      - 6379:6379
+    networks:
+      network_custom:
+        ipv4_address: 172.28.0.3
+
+  upbit_producer1:
+    <<: *crptostream-common
+    command: >
+      bash -c "
+      python -m venv /venv &&
+      /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
+      /venv/bin/python /CryptoStream/src/upbit_producer.py upbit_producer1"
+    networks:
+      network_custom:
+        ipv4_address: 172.28.0.4
+
+  upbit_producer2:
+    <<: *crptostream-common
+    command: >
+      bash -c "
+      python -m venv /venv &&
+      /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
+      /venv/bin/python /CryptoStream/src/upbit_producer.py upbit_producer2"
+    networks:
+      network_custom:
+        ipv4_address: 172.28.0.5
+
+  upbit_producer3:
+    <<: *crptostream-common
+    command: >
+      bash -c "
+      python -m venv /venv &&
+      /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
+      /venv/bin/python /CryptoStream/src/upbit_producer.py upbit_producer3"
+    networks:
+      network_custom:
+        ipv4_address: 172.28.0.6
+
+  upbit_dataloader1:
+    <<: *crptostream-common
+    command: >
+      bash -c "
+      python -m venv /venv &&
+      /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
+      /venv/bin/python /CryptoStream/src/upbit_dataloader.py upbit_dataloader1"
+    networks:
+      network_custom:
+          ipv4_address: 172.28.0.7
+
+  upbit_dataloader2:
+    <<: *crptostream-common
+    command: >
+      bash -c "
+      python -m venv /venv &&
+      /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
+      /venv/bin/python /CryptoStream/src/upbit_dataloader.py upbit_dataloader2"
+    networks:
+      network_custom:
+          ipv4_address: 172.28.0.8
+
+  upbit_dataloader3:
+    <<: *crptostream-common
+    command: >
+      bash -c "
+      python -m venv /venv &&
+      /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
+      /venv/bin/python /CryptoStream/src/upbit_dataloader.py upbit_dataloader3"
+    networks:
+      network_custom:
+          ipv4_address: 172.28.0.9
+
+volumes:
+  postgres-db-volume:
+
+networks:
+  network_custom:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+          gateway: 172.28.0.1
