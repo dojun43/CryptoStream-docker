@@ -3,7 +3,7 @@ import sys
 import configparser
 import logging
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import redis
 import psycopg2
 from psycopg2 import sql
@@ -69,9 +69,13 @@ class upbit_dataloader:
                     dt_object = datetime.fromtimestamp(up_data['timestamp'])
                     timestamp_date = dt_object.strftime('%Y%m%d')
 
+                    next_dt_object = dt_object + timedelta(days=1)
+                    timestamp_next_date = next_dt_object.strftime('%Y%m%d')
+
                     insert_query = f"""
-                        INSERT INTO {ticker}_upbit_{timestamp_date} (
+                        INSERT INTO {ticker}_upbit_orderbook (
                             timestamp, 
+                            event_date,
                             up_bid_price, 
                             up_bid_vol, 
                             up_ask_price, 
@@ -80,11 +84,12 @@ class upbit_dataloader:
                         """
                     insert_query = sql.SQL(insert_query)
                     cursor.execute(insert_query, (up_data['timestamp'], 
-                                                up_data['up_bid_price'], 
-                                                up_data['up_bid_vol'], 
-                                                up_data['up_ask_price'], 
-                                                up_data['up_ask_vol']
-                                                ))
+                                                  timestamp_date,
+                                                  up_data['up_bid_price'], 
+                                                  up_data['up_bid_vol'], 
+                                                  up_data['up_ask_price'], 
+                                                  up_data['up_ask_vol']
+                                                  ))
                     insert_count += 1
 
                     # commit
@@ -98,13 +103,15 @@ class upbit_dataloader:
                 pg_conn.rollback()
 
                 create_table_query = f"""
-                CREATE TABLE IF NOT EXISTS {ticker}_upbit_{timestamp_date} (
-                    timestamp NUMERIC(20, 5) PRIMARY KEY,
+                CREATE TABLE IF NOT EXISTS {ticker}_upbit_orderbook (
+                    timestamp NUMERIC(20, 5),
+                    event_date DATE,
                     up_bid_price NUMERIC(20, 10),
                     up_bid_vol NUMERIC(20, 10),
                     up_ask_price NUMERIC(20, 10),
-                    up_ask_vol NUMERIC(20, 10)
-                );
+                    up_ask_vol NUMERIC(20, 10),
+                    PRIMARY KEY (timestamp, event_date) 
+                ) PARTITION BY RANGE (event_date);
                 """
                 create_table_query=sql.SQL(create_table_query)
 
@@ -115,11 +122,12 @@ class upbit_dataloader:
 
                 # insert data
                 cursor.execute(insert_query, (up_data['timestamp'], 
-                                                up_data['up_bid_price'], 
-                                                up_data['up_bid_vol'], 
-                                                up_data['up_ask_price'], 
-                                                up_data['up_ask_vol']
-                                                ))
+                                              timestamp_date,
+                                              up_data['up_bid_price'], 
+                                              up_data['up_bid_vol'], 
+                                              up_data['up_ask_price'], 
+                                              up_data['up_ask_vol']
+                                              ))
                 insert_count += 1
 
                 # commit
@@ -128,6 +136,43 @@ class upbit_dataloader:
                     insert_count = 0
                     #logging.info(f"Commit complete: {self.commit_count} records added")
             
+            except psycopg2.IntegrityError as e:
+                if "partitioned table" in str(e):
+                    # create partition
+                    pg_conn.rollback()  
+                    
+                    create_partition_query = f"""
+                    CREATE TABLE IF NOT EXISTS {ticker}_upbit_orderbook_{timestamp_date}
+                    PARTITION OF {ticker}_upbit_orderbook 
+                    FOR VALUES FROM (%s) TO (%s);
+                    """
+
+                    create_partition_query=sql.SQL(create_partition_query)
+
+                    cursor.execute(create_partition_query, (timestamp_date, timestamp_next_date))
+                    pg_conn.commit()
+
+                    logging.info(f"Create {ticker} partition")
+                    
+                    # insert data
+                    cursor.execute(insert_query, (up_data['timestamp'], 
+                                                    timestamp_date,
+                                                    up_data['up_bid_price'], 
+                                                    up_data['up_bid_vol'], 
+                                                    up_data['up_ask_price'], 
+                                                    up_data['up_ask_vol']
+                                                    ))
+                    insert_count += 1
+
+                    # commit
+                    if insert_count % self.commit_count == 0:
+                        pg_conn.commit()
+                        insert_count = 0
+                        #logging.info(f"Commit complete: {self.commit_count} records added")
+
+                else:
+                    raise
+
             except (psycopg2.DatabaseError, psycopg2.OperationalError) as e:
                 logging.error(f"Transaction error: {e}")
                 pg_conn.rollback()
