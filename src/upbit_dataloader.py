@@ -57,10 +57,7 @@ class upbit_dataloader:
                        'timestamp': timestamp,
                        'timestamp_date': timestamp_date,
                        'timestamp_next_date': timestamp_next_date,
-                       'up_bid_price': up_data['obu'][0]['bp'],
-                       'up_bid_vol': up_data['obu'][0]['bs'],
-                       'up_ask_price': up_data['obu'][0]['ap'],
-                       'up_ask_vol': up_data['obu'][0]['as']
+                       'orderbook': up_data['obu']
                       }
 
         return return_dict
@@ -70,10 +67,26 @@ class upbit_dataloader:
         CREATE TABLE IF NOT EXISTS {ticker}_upbit_orderbook (
             timestamp NUMERIC(20, 5),
             event_date DATE,
-            up_bid_price NUMERIC(20, 10),
-            up_bid_vol NUMERIC(20, 10),
-            up_ask_price NUMERIC(20, 10),
-            up_ask_vol NUMERIC(20, 10),
+            up_bid_price1 NUMERIC(20, 10),
+            up_bid_vol1 NUMERIC(20, 10),
+            up_ask_price1 NUMERIC(20, 10),
+            up_ask_vol1 NUMERIC(20, 10),
+            up_bid_price2 NUMERIC(20, 10),
+            up_bid_vol2 NUMERIC(20, 10),
+            up_ask_price2 NUMERIC(20, 10),
+            up_ask_vol2 NUMERIC(20, 10),
+            up_bid_price3 NUMERIC(20, 10),
+            up_bid_vol3 NUMERIC(20, 10),
+            up_ask_price3 NUMERIC(20, 10),
+            up_ask_vol3 NUMERIC(20, 10),
+            up_bid_price4 NUMERIC(20, 10),
+            up_bid_vol4 NUMERIC(20, 10),
+            up_ask_price4 NUMERIC(20, 10),
+            up_ask_vol4 NUMERIC(20, 10),
+            up_bid_price5 NUMERIC(20, 10),
+            up_bid_vol5 NUMERIC(20, 10),
+            up_ask_price5 NUMERIC(20, 10),
+            up_ask_vol5 NUMERIC(20, 10),
             PRIMARY KEY (timestamp, event_date) 
         ) PARTITION BY RANGE (event_date);
         """
@@ -106,19 +119,28 @@ class upbit_dataloader:
         INSERT INTO {up_data['ticker']}_upbit_orderbook (
             timestamp, 
             event_date,
-            up_bid_price, 
-            up_bid_vol, 
-            up_ask_price, 
-            up_ask_vol) 
-        VALUES (%s, %s, %s, %s, %s, %s)
+            up_bid_price1, up_bid_vol1, up_ask_price1, up_ask_vol1,
+            up_bid_price2, up_bid_vol2, up_ask_price2, up_ask_vol2,
+            up_bid_price3, up_bid_vol3, up_ask_price3, up_ask_vol3,
+            up_bid_price4, up_bid_vol4, up_ask_price4, up_ask_vol4,
+            up_bid_price5, up_bid_vol5, up_ask_price5, up_ask_vol5
+            ) 
+        VALUES (%s, 
+                %s, 
+                %s, %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s, %s)
         """
         insert_query = sql.SQL(insert_query)
         self.cursor.execute(insert_query, (up_data['timestamp'],
                                             up_data['timestamp_date'],
-                                            up_data['up_bid_price'],
-                                            up_data['up_bid_vol'],
-                                            up_data['up_ask_price'],
-                                            up_data['up_ask_vol']
+                                            up_data['orderbook'][0]['bp'], up_data['orderbook'][0]['bs'], up_data['orderbook'][0]['ap'], up_data['orderbook'][0]['as'],
+                                            up_data['orderbook'][1]['bp'], up_data['orderbook'][1]['bs'], up_data['orderbook'][1]['ap'], up_data['orderbook'][1]['as'],
+                                            up_data['orderbook'][2]['bp'], up_data['orderbook'][2]['bs'], up_data['orderbook'][2]['ap'], up_data['orderbook'][2]['as'],
+                                            up_data['orderbook'][3]['bp'], up_data['orderbook'][3]['bs'], up_data['orderbook'][3]['ap'], up_data['orderbook'][3]['as'],
+                                            up_data['orderbook'][4]['bp'], up_data['orderbook'][4]['bs'], up_data['orderbook'][4]['ap'], up_data['orderbook'][4]['as']
                                             ))
         insert_count += 1
 
