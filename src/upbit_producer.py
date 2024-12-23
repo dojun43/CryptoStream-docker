@@ -33,7 +33,7 @@ class upbit_producer:
         # variables
         self.producer_name = producer_name
         self.stream_name = config.get(producer_name, 'stream_name')
-        self.maxlen = config.get(producer_name, 'maxlen')
+        self.maxlen = int(config.get(producer_name, 'maxlen'))
         self.tickers = config.get(producer_name,'tickers')
         self.tickers = self.tickers.split(',')
 
