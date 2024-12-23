@@ -64,7 +64,7 @@ class upbit_producer:
                     data = await websocket.recv()
                     data = json.loads(data)
 
-                    redis_conn.xadd(self.stream_name, {"data": json.dumps(data)}, maxlen=5, approximate=False)
+                    redis_conn.xadd(self.stream_name, {"data": json.dumps(data)}, maxlen=1500000, approximate=False)
 
                 except (redis.ConnectionError, redis.TimeoutError) as e:
                     logging.error(f"Redis Connection failed: {e}")
