@@ -32,11 +32,11 @@ class upbit_producer:
 
         # variables
         self.producer_name = producer_name
-        self.q = config.get(producer_name, 'queue')
+        self.stream_name = config.get(producer_name, 'stream_name')
         self.tickers = config.get(producer_name,'tickers')
         self.tickers = self.tickers.split(',')
 
-        logging.info(f"{self.producer_name} queue: {self.q}")
+        logging.info(f"{self.producer_name} stream: {self.stream_name}")
         logging.info(f"{self.producer_name} tickers: {self.tickers}")
 
         # websocket setting
@@ -64,7 +64,7 @@ class upbit_producer:
                     data = await websocket.recv()
                     data = json.loads(data)
 
-                    redis_conn.lpush(self.q, json.dumps(data))
+                    redis_conn.xadd(self.stream_name, {"data": json.dumps(data)})
 
                 except (redis.ConnectionError, redis.TimeoutError) as e:
                     logging.error(f"Redis Connection failed: {e}")
