@@ -47,8 +47,8 @@ services:
       retries: 50
       start_period: 30s
     restart: always
-    ports:
-      - 6379:6379
+    expose:
+      - 6379
     networks:
       network_custom:
         ipv4_address: 172.28.0.3
