@@ -71,9 +71,11 @@ class upbit_producer:
                 except (redis.ConnectionError, redis.TimeoutError) as e:
                     logging.error(f"Redis Connection failed: {e}")
                     redis_conn = connect_to_redis()
+                    time.sleep(5)
 
                 except Exception as e:
                     logging.error(f"upbit producer error: {e}")
+                    time.sleep(5)
 
             else:
                 try:

@@ -2,6 +2,7 @@ import os
 import sys
 import configparser
 import logging
+import time
 import json
 from datetime import datetime, timedelta
 import redis
@@ -205,7 +206,8 @@ class upbit_dataloader:
 
                 # ACK
                 self.redis_conn.xack(self.stream_name, self.group_name, msg_id)   
-            
+                time.sleep(5)
+
             except psycopg2.IntegrityError as e:
                 if "no partition of relation" in str(e):
                     self.pg_conn.rollback()  
@@ -218,27 +220,33 @@ class upbit_dataloader:
 
                     # ACK
                     self.redis_conn.xack(self.stream_name, self.group_name, msg_id)   
+                    time.sleep(5)
 
                 else:
                     logging.error(f"upbit dataloader error: {e}")
+                    time.sleep(5)
 
             except (psycopg2.DatabaseError, psycopg2.OperationalError) as e:
                 logging.error(f"Transaction error: {e}")
                 self.pg_conn.rollback()
                 insert_count = 0
+                time.sleep(5)
 
             except (redis.ConnectionError, redis.TimeoutError) as e:
                 logging.error(f"Redis Connection failed: {e}")
                 self.redis_conn = connect_to_redis()
+                time.sleep(5)
 
             except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
                 logging.error(f"Postgres Connection failed: {e}")
                 self.pg_conn = connect_to_postgres()
                 self.cursor = self.pg_conn.cursor()
                 insert_count = 0
+                time.sleep(5)
 
             except Exception as e:                
                 logging.error(f"upbit dataloader error: {e}")
+                time.sleep(5)
 
     def run(self):
         self.main()
