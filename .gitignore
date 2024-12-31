@@ -8,3 +8,5 @@ private
 /terraform/terraform*
 
 src/__*
+
+README.md
