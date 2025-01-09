@@ -6,6 +6,20 @@ resource "google_compute_address" "static_ip" {
 }
 
 # port 허용 
+resource "google_compute_firewall" "allow-superset" {
+  name    = "allow-superset"
+  project = var.project
+  network = "default"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["8088"]
+  }
+
+  source_ranges = ["0.0.0.0/0"] 
+  target_tags   = ["allow-superset"]
+}
+
 resource "google_compute_firewall" "allow-postgres" {
   name    = "allow-postgres"
   project = var.project
@@ -18,20 +32,6 @@ resource "google_compute_firewall" "allow-postgres" {
 
   source_ranges = ["0.0.0.0/0"] 
   target_tags   = ["allow-postgres"]
-}
-
-resource "google_compute_firewall" "allow-redis" {
-  name    = "allow-redis"
-  project = var.project
-  network = "default"
-
-  allow {
-    protocol = "tcp"
-    ports    = ["6379"]
-  }
-
-  source_ranges = ["0.0.0.0/0"] 
-  target_tags   = ["allow-redis"]
 }
 
 resource "google_compute_firewall" "allow-ssh" {
@@ -69,5 +69,5 @@ resource "google_compute_instance" "default" {
 
   metadata_startup_script = file("startup_script.sh")
 
-  tags = ["allow-ssh", "allow-postgres", "allow-redis"]
+  tags = ["allow-ssh", "allow-postgres", "allow-superset"]
 }

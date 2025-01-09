@@ -138,7 +138,7 @@ class upbit_dataloader:
             up_bid_price3, up_bid_vol3, up_ask_price3, up_ask_vol3,
             up_bid_price4, up_bid_vol4, up_ask_price4, up_ask_vol4,
             up_bid_price5, up_bid_vol5, up_ask_price5, up_ask_vol5
-            ) 
+        ) 
         VALUES (%s, 
                 %s, 
                 %s, %s, %s, %s,
@@ -146,6 +146,14 @@ class upbit_dataloader:
                 %s, %s, %s, %s,
                 %s, %s, %s, %s,
                 %s, %s, %s, %s)
+        ON CONFLICT (timestamp, event_date) 
+        DO UPDATE SET 
+            event_date = EXCLUDED.event_date,
+            up_bid_price1 = EXCLUDED.up_bid_price1, up_bid_vol1 = EXCLUDED.up_bid_vol1, up_ask_price1 = EXCLUDED.up_ask_price1, up_ask_vol1 = EXCLUDED.up_ask_vol1,
+            up_bid_price2 = EXCLUDED.up_bid_price2, up_bid_vol2 = EXCLUDED.up_bid_vol2, up_ask_price2 = EXCLUDED.up_ask_price2, up_ask_vol2 = EXCLUDED.up_ask_vol2,
+            up_bid_price3 = EXCLUDED.up_bid_price3, up_bid_vol3 = EXCLUDED.up_bid_vol3, up_ask_price3 = EXCLUDED.up_ask_price3, up_ask_vol3 = EXCLUDED.up_ask_vol3,
+            up_bid_price4 = EXCLUDED.up_bid_price4, up_bid_vol4 = EXCLUDED.up_bid_vol4, up_ask_price4 = EXCLUDED.up_ask_price4, up_ask_vol4 = EXCLUDED.up_ask_vol4,
+            up_bid_price5 = EXCLUDED.up_bid_price5, up_bid_vol5 = EXCLUDED.up_bid_vol5, up_ask_price5 = EXCLUDED.up_ask_price5, up_ask_vol5 = EXCLUDED.up_ask_vol5;
         """
         insert_query = sql.SQL(insert_query)
         self.cursor.execute(insert_query, (up_data['timestamp'],
@@ -171,7 +179,29 @@ class upbit_dataloader:
                 
         while True:
             try:
-                # get data
+                # pending 메시지 처리
+                pending_messages = self.redis_conn.xpending_range(self.stream_name, self.group_name, '-', '+', count=100)
+
+                if len(pending_messages) > 0:
+                    for message in pending_messages:
+                        message_id = message['message_id']
+                        claimed_message = self.redis_conn.xclaim(self.stream_name, 
+                                                                 self.group_name, 
+                                                                 self.consumer_name, 
+                                                                 min_idle_time=0, 
+                                                                 message_ids=[message_id.decode()])
+
+                        for msg_id, data in claimed_message:            
+                            up_data = json.loads(data.get(b"data").decode('utf-8'))
+                            up_data = self.transform_data(up_data)
+
+                            # insert data
+                            insert_count = self.insert_data(up_data, insert_count)      
+
+                            # ACK
+                            self.redis_conn.xack(self.stream_name, self.group_name, msg_id)     
+
+                # 메시지 처리
                 response = self.redis_conn.xreadgroup(self.group_name, 
                                                       self.consumer_name, 
                                                       {self.stream_name: ">"}, 

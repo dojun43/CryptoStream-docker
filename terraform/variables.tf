@@ -2,12 +2,12 @@
 
 variable "credentials" {
   description = "GCP에 액세스하기 위한 json 파일"
-  default = "C:/Users/DODO/VScode/CryptoStream/private/cryptostream-account.json"
+  default = "/Users/dodo/CryptoStream-docker/private/cryptostream-docker.json"
 }
 
 variable "project" {
   description = "GCP 프로젝트 ID"
-  default = "cryptostream-439509" 
+  default = "cryptostream-docker" 
 }
 
 variable "region" {
