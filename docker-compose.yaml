@@ -1,6 +1,7 @@
 x-crptostream-common:
   &crptostream-common
-  image: python:3.12
+  image: python:3.11
+  restart: always
   env_file:
       - .env
   volumes:
@@ -10,8 +11,6 @@ x-crptostream-common:
   working_dir: /CryptoStream
   depends_on:
     &crptostream-common-depends-on
-    redis:
-      condition: service_healthy
     postgres:
       condition: service_healthy
 

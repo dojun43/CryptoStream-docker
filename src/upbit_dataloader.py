@@ -178,12 +178,14 @@ class upbit_dataloader:
                 if msg:
                     for topic_partition, messages in msg.items():
                         for message in messages:
-                            up_data = message.value
+                            up_data = json.loads(message.value)
                             up_data = self.transform_data(up_data)
 
                             # insert data
                             insert_count = self.insert_data(up_data, insert_count)          
-                        
+                    
+                    self.kafka_consumer.commit()
+
             except psycopg2.errors.UndefinedTable:
                 self.pg_conn.rollback()
 

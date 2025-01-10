@@ -1,7 +1,7 @@
 resource "google_compute_firewall" "allow-ssh" {
   name    = "allow-ssh"
   project = var.project
-  network = google_compute_network.kafka_network.name
+  network = google_compute_network.cryptostream-network.name
 
   allow {
     protocol = "tcp"
@@ -15,7 +15,7 @@ resource "google_compute_firewall" "allow-ssh" {
 resource "google_compute_firewall" "allow-icmp" {
   name    = "allow-icmp"
   project = var.project
-  network = google_compute_network.kafka_network.name
+  network = google_compute_network.cryptostream-network.name
 
   allow {
     protocol = "icmp"
@@ -28,7 +28,7 @@ resource "google_compute_firewall" "allow-icmp" {
 resource "google_compute_firewall" "allow-superset" {
   name    = "allow-superset"
   project = var.project
-  network = "default"
+  network = google_compute_network.cryptostream-network.name
 
   allow {
     protocol = "tcp"
@@ -42,7 +42,7 @@ resource "google_compute_firewall" "allow-superset" {
 resource "google_compute_firewall" "allow-postgres" {
   name    = "allow-postgres"
   project = var.project
-  network = "default"
+  network = google_compute_network.cryptostream-network.name
 
   allow {
     protocol = "tcp"
@@ -56,7 +56,7 @@ resource "google_compute_firewall" "allow-postgres" {
 resource "google_compute_firewall" "allow-kafka-ports" {
   name    = "allow-kafka-ports"
   project = var.project
-  network = google_compute_network.kafka_network.name
+  network = google_compute_network.cryptostream-network.name
 
   allow {
     protocol = "tcp"
@@ -70,7 +70,7 @@ resource "google_compute_firewall" "allow-kafka-ports" {
 resource "google_compute_firewall" "allow-kafka-inner-ports" {
   name    = "allow-kafka-inner-ports"
   project = var.project
-  network = google_compute_network.kafka_network.name
+  network = google_compute_network.cryptostream-network.name
 
   allow {
     protocol = "tcp"

@@ -8,14 +8,15 @@ from kafka.admin import KafkaAdminClient, NewTopic
 def create_kafka_producer():
     while True:
         try:
-            bootstrap_servers = [f"'{os.getenv('KAFKA_NODE1_INTERNAL_IP')}':9092",
-                                f"'{os.getenv('KAFKA_NODE2_INTERNAL_IP')}':9092",
-                                f"'{os.getenv('KAFKA_NODE3_INTERNAL_IP')}':9092",
+            bootstrap_servers = [f"{os.getenv('KAFKA_NODE1_INTERNAL_IP')}:9092",
+                                f"{os.getenv('KAFKA_NODE2_INTERNAL_IP')}:9092",
+                                f"{os.getenv('KAFKA_NODE3_INTERNAL_IP')}:9092",
                                 ] 
 
             producer = KafkaProducer(
                 bootstrap_servers=bootstrap_servers,  
-                value_serializer=lambda x: x.decode('utf-8')      
+                value_serializer=lambda x: x.encode('utf-8'),
+                linger_ms=0      
                 )
             
             return producer
@@ -28,9 +29,9 @@ def create_kafka_producer():
 def create_kafka_topic(client_id, topic_name, num_partitions, replication_factor):
     while True:
         try:
-            bootstrap_servers = [f"'{os.getenv('KAFKA_NODE1_INTERNAL_IP')}':9092",
-                                f"'{os.getenv('KAFKA_NODE2_INTERNAL_IP')}':9092",
-                                f"'{os.getenv('KAFKA_NODE3_INTERNAL_IP')}':9092",
+            bootstrap_servers = [f"{os.getenv('KAFKA_NODE1_INTERNAL_IP')}:9092",
+                                f"{os.getenv('KAFKA_NODE2_INTERNAL_IP')}:9092",
+                                f"{os.getenv('KAFKA_NODE3_INTERNAL_IP')}:9092",
                                 ] 
 
             admin_client = KafkaAdminClient(

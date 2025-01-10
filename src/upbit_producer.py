@@ -4,7 +4,6 @@ import configparser
 import logging
 import websockets
 import json
-import redis
 import time
 import asyncio
 from producer import create_kafka_producer, create_kafka_topic
@@ -72,7 +71,7 @@ class upbit_producer:
                     data = await websocket.recv()
                     data = json.loads(data)
 
-                    kafka_producer.send(self.topic_name, value=data).get(timeout=5)
+                    kafka_producer.send(self.topic_name, value=json.dumps(data)).get(timeout=5)
 
                 except Exception as e:
                     logging.error(f"upbit producer error: {e}")
