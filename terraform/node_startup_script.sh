@@ -38,6 +38,8 @@ echo "End Docker installation" >> /var/log/startup_script.log
 
 
 ## set up
+sudo mkdir -p /data/postgresql/data
+sudo chown -R 1000:1000 /data/postgresql/data
 
 # git clone
 cd /data

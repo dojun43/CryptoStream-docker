@@ -17,13 +17,15 @@ x-crptostream-common:
 services:
   postgres:
     image: postgres:13
+    container_name: postgres
+    user: "1000"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: cryptostream
       TZ: Asia/Seoul
     volumes:
-      - postgres-db-volume:/var/lib/postgresql/data
+      - /data/postgresql/data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "cryptostream"]
       interval: 10s
@@ -38,6 +40,7 @@ services:
 
   upbit_producer1:
     <<: *crptostream-common
+    container_name: upbit_producer1
     command: >
       bash -c "
       python -m venv /venv &&
@@ -49,6 +52,7 @@ services:
 
   upbit_producer2:
     <<: *crptostream-common
+    container_name: upbit_producer2
     command: >
       bash -c "
       python -m venv /venv &&
@@ -60,6 +64,7 @@ services:
 
   upbit_producer3:
     <<: *crptostream-common
+    container_name: upbit_producer3
     command: >
       bash -c "
       python -m venv /venv &&
@@ -71,6 +76,7 @@ services:
 
   upbit_dataloader1:
     <<: *crptostream-common
+    container_name: upbit_dataloader1
     command: >
       bash -c "
       python -m venv /venv &&
@@ -82,6 +88,7 @@ services:
 
   upbit_dataloader2:
     <<: *crptostream-common
+    container_name: upbit_dataloader2
     command: >
       bash -c "
       python -m venv /venv &&
@@ -93,6 +100,7 @@ services:
 
   upbit_dataloader3:
     <<: *crptostream-common
+    container_name: upbit_dataloader3
     command: >
       bash -c "
       python -m venv /venv &&
@@ -101,9 +109,6 @@ services:
     networks:
       network_custom:
           ipv4_address: 172.28.0.8
-
-volumes:
-  postgres-db-volume:
 
 networks:
   network_custom:
