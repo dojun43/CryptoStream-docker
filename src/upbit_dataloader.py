@@ -5,10 +5,10 @@ import logging
 import time
 import json
 from datetime import datetime, timedelta
-import redis
 import psycopg2
 from psycopg2 import sql
-from connection import connect_to_redis, connect_to_postgres
+from connection import connect_to_postgres
+from consumer import create_kafka_consumer
 
 class upbit_dataloader:
     def __init__(self, dataloader_name: str):
@@ -33,30 +33,23 @@ class upbit_dataloader:
 
         # variables
         self.dataloader_name = dataloader_name
-        self.stream_name = config.get(dataloader_name,'stream_name')
+        self.topic_name = config.get(dataloader_name,'topic_name')
         self.group_name = config.get(dataloader_name,'group_name')
-        self.consumer_name = config.get(dataloader_name,'consumer_name')
         self.commit_count = int(config.get(dataloader_name,'commit_count'))
 
-        logging.info(f"{self.dataloader_name} stream: {self.stream_name}")
+        logging.info(f"{self.dataloader_name} topic_name: {self.topic_name}")
         logging.info(f"{self.dataloader_name} group: {self.group_name}")
-        logging.info(f"{self.dataloader_name} consumer: {self.consumer_name}")
         logging.info(f"{self.dataloader_name} commit count: {self.commit_count}")
 
         # connection DB
         self.pg_conn = connect_to_postgres()
         self.cursor = self.pg_conn.cursor()
-        self.redis_conn = connect_to_redis()
 
-        # redis stream group 생성
-        try:
-            self.redis_conn.xgroup_create(self.stream_name, self.group_name, id="0", mkstream=True)
-
-        except redis.exceptions.ResponseError as e:
-            if "BUSYGROUP" in str(e):
-                print(f"Group '{self.group_name}' already exists.")
-            else:
-                print(f"Error creating group: {e}")
+        # create kafka consumer
+        self.kafka_consumer = create_kafka_consumer(group_id=self.group_name, 
+                                                    topic_name=self.topic_name, 
+                                                    partition_num=0
+                                                    )
 
     def transform_data(self, up_data: dict[str, any]) -> dict:
         timestamp = up_data['tms'] / 1000
@@ -179,48 +172,17 @@ class upbit_dataloader:
                 
         while True:
             try:
-                # pending 메시지 처리
-                pending_messages = self.redis_conn.xpending_range(self.stream_name, self.group_name, '-', '+', count=100)
-
-                if len(pending_messages) > 0:
-                    for message in pending_messages:
-                        message_id = message['message_id']
-                        claimed_message = self.redis_conn.xclaim(self.stream_name, 
-                                                                 self.group_name, 
-                                                                 self.consumer_name, 
-                                                                 min_idle_time=0, 
-                                                                 message_ids=[message_id.decode()])
-
-                        for msg_id, data in claimed_message:            
-                            up_data = json.loads(data.get(b"data").decode('utf-8'))
-                            up_data = self.transform_data(up_data)
-
-                            # insert data
-                            insert_count = self.insert_data(up_data, insert_count)      
-
-                            # ACK
-                            self.redis_conn.xack(self.stream_name, self.group_name, msg_id)     
-
                 # 메시지 처리
-                response = self.redis_conn.xreadgroup(self.group_name, 
-                                                      self.consumer_name, 
-                                                      {self.stream_name: ">"}, 
-                                                      count=1, 
-                                                      block=5000)
+                msg = self.kafka_consumer.poll(timeout_ms=5000)
 
-                if len(response) > 0:
-                    for each_response in response:
-                        stream, messages = each_response
-
-                        for msg_id, data in messages:            
-                            up_data = json.loads(data.get(b"data").decode('utf-8'))
+                if msg:
+                    for topic_partition, messages in msg.items():
+                        for message in messages:
+                            up_data = message.value
                             up_data = self.transform_data(up_data)
 
                             # insert data
-                            insert_count = self.insert_data(up_data, insert_count)      
-
-                            # ACK
-                            self.redis_conn.xack(self.stream_name, self.group_name, msg_id)              
+                            insert_count = self.insert_data(up_data, insert_count)          
                         
             except psycopg2.errors.UndefinedTable:
                 self.pg_conn.rollback()
@@ -234,8 +196,6 @@ class upbit_dataloader:
                 # insert data
                 insert_count = self.insert_data(up_data, insert_count)
 
-                # ACK
-                self.redis_conn.xack(self.stream_name, self.group_name, msg_id)   
                 time.sleep(5)
 
             except psycopg2.IntegrityError as e:
@@ -248,8 +208,6 @@ class upbit_dataloader:
                     # insert data
                     insert_count = self.insert_data(up_data, insert_count)
 
-                    # ACK
-                    self.redis_conn.xack(self.stream_name, self.group_name, msg_id)   
                     time.sleep(5)
 
                 else:
@@ -260,11 +218,6 @@ class upbit_dataloader:
                 logging.error(f"Transaction error: {e}")
                 self.pg_conn.rollback()
                 insert_count = 0
-                time.sleep(5)
-
-            except (redis.ConnectionError, redis.TimeoutError) as e:
-                logging.error(f"Redis Connection failed: {e}")
-                self.redis_conn = connect_to_redis()
                 time.sleep(5)
 
             except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
