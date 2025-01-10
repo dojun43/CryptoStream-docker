@@ -1,3 +1,9 @@
+## disk mount
+sudo mkfs.ext4 /dev/sdb  # 파일 시스템 생성
+sudo mkdir /data
+sudo mount /dev/sdb /data
+
+
 ## install docker
 
 echo "Starting Docker installation" >> /var/log/startup_script.log
@@ -31,12 +37,10 @@ sudo systemctl enable docker
 echo "End Docker installation" >> /var/log/startup_script.log
 
 
-## git
-
-# create user
-sudo adduser --disabled-password --gecos "" cryptostream
-sudo usermod -aG sudo cryptostream
+## setup
+sudo mkdir -p /data/kafka
+sudo chown -R 1000:1000 /data/kafka
 
 # git clone
-sudo -u cryptostream -H bash -c "cd /home/cryptostream && git clone https://github.com/dojun43/CryptoStream-docker.git"
-sudo chown -R cryptostream:cryptostream /home/cryptostream/CryptoStream
+cd /data
+git clone https://github.com/dojun43/CryptoStream-docker.git
