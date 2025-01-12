@@ -58,7 +58,7 @@ sudo docker compose -f docker-compose-kafka3.yaml up -d   # kafka-node1
 [kafka-node1 외부 IP]:9000
 ```
 
-3. Data Pipeline 구성 (cryptostream-node1에서 해당 태스트 수행)
+3. Data Pipeline 구성 (cryptostream-node1에서 해당 태스크 수행)
 - .env 파일에 DB 접속 정보와 kafka 노드의 내부 IP를 입력합니다.
 ```
 cd /data/CryptoStream-docker
