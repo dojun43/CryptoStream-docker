@@ -1,7 +1,6 @@
 venv
 test
 logs
-.env
 
 private
 /terraform/.terraform*

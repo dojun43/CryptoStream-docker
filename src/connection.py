@@ -1,23 +1,8 @@
 import os
 import logging
 import time
-import redis
 import psycopg2
 
-def connect_to_redis():
-    while True:
-        try:
-            redis_conn = redis.Redis(host=os.getenv('REDIS_HOST'), 
-                                     port=os.getenv('REDIS_PORT'), 
-                                     password=os.getenv('REDIS_PASSWORD'), 
-                                     db=0)
-            redis_conn.ping()
-            logging.info("Connected to Redis")
-            return redis_conn
-        
-        except (redis.ConnectionError, redis.TimeoutError) as e:
-            logging.error(f"Redis Connection failed: {e}. Retrying in 5 seconds...")
-            time.sleep(5)
 
 def connect_to_postgres():
     while True:

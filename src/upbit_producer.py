@@ -4,10 +4,9 @@ import configparser
 import logging
 import websockets
 import json
-import redis
 import time
 import asyncio
-from connection import connect_to_redis
+from producer import create_kafka_producer, create_kafka_topic
 
 class upbit_producer:
     def __init__(self, producer_name: str):
@@ -32,13 +31,11 @@ class upbit_producer:
 
         # variables
         self.producer_name = producer_name
-        self.stream_name = config.get(producer_name, 'stream_name')
-        self.maxlen = int(config.get(producer_name, 'maxlen'))
+        self.topic_name = config.get(producer_name, 'topic_name')
         self.tickers = config.get(producer_name,'tickers')
         self.tickers = self.tickers.split(',')
 
-        logging.info(f"{self.producer_name} stream: {self.stream_name}")
-        logging.info(f"{self.producer_name} maxlen: {self.maxlen}")
+        logging.info(f"{self.producer_name} topic_name: {self.topic_name}")
         logging.info(f"{self.producer_name} tickers: {self.tickers}")
 
         # websocket setting
@@ -54,9 +51,17 @@ class upbit_producer:
             {"format": "SIMPLE"}
         ]
 
-    async def up_ws_client(self):        
-        redis_conn = connect_to_redis()
+    async def up_ws_client(self):     
+        # create kafka producer   
+        kafka_producer = create_kafka_producer()
 
+        # create topic
+        create_kafka_topic(client_id = self.producer_name, 
+                           topic_name = self.topic_name, 
+                           num_partitions = 1, 
+                           replication_factor = 2)
+
+        # webdocket connetion
         websocket = await websockets.connect(self.uri, ping_interval=60)
         await websocket.send(json.dumps(self.subscribe_fmt))
 
@@ -66,12 +71,7 @@ class upbit_producer:
                     data = await websocket.recv()
                     data = json.loads(data)
 
-                    redis_conn.xadd(self.stream_name, {"data": json.dumps(data)}, maxlen=self.maxlen, approximate=False)
-
-                except (redis.ConnectionError, redis.TimeoutError) as e:
-                    logging.error(f"Redis Connection failed: {e}")
-                    redis_conn = connect_to_redis()
-                    time.sleep(5)
+                    kafka_producer.send(self.topic_name, value=json.dumps(data)).get(timeout=5)
 
                 except Exception as e:
                     logging.error(f"upbit producer error: {e}")

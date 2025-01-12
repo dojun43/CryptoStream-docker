@@ -1,6 +1,7 @@
 x-crptostream-common:
   &crptostream-common
-  image: python:3.12
+  image: python:3.11
+  restart: always
   env_file:
       - .env
   volumes:
@@ -10,21 +11,21 @@ x-crptostream-common:
   working_dir: /CryptoStream
   depends_on:
     &crptostream-common-depends-on
-    redis:
-      condition: service_healthy
     postgres:
       condition: service_healthy
 
 services:
   postgres:
     image: postgres:13
+    container_name: postgres
+    user: "1000"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: cryptostream
       TZ: Asia/Seoul
     volumes:
-      - postgres-db-volume:/var/lib/postgresql/data
+      - /data/postgresql/data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "cryptostream"]
       interval: 10s
@@ -37,24 +38,9 @@ services:
       network_custom:
         ipv4_address: 172.28.0.2
 
-  redis:
-    image: redis:7.2-bookworm
-    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}"]
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 30s
-      retries: 50
-      start_period: 30s
-    restart: always
-    expose:
-      - 6379
-    networks:
-      network_custom:
-        ipv4_address: 172.28.0.3
-
   upbit_producer1:
     <<: *crptostream-common
+    container_name: upbit_producer1
     command: >
       bash -c "
       python -m venv /venv &&
@@ -62,10 +48,11 @@ services:
       /venv/bin/python /CryptoStream/src/upbit_producer.py upbit_producer1"
     networks:
       network_custom:
-        ipv4_address: 172.28.0.4
+        ipv4_address: 172.28.0.3
 
   upbit_producer2:
     <<: *crptostream-common
+    container_name: upbit_producer2
     command: >
       bash -c "
       python -m venv /venv &&
@@ -73,10 +60,11 @@ services:
       /venv/bin/python /CryptoStream/src/upbit_producer.py upbit_producer2"
     networks:
       network_custom:
-        ipv4_address: 172.28.0.5
+        ipv4_address: 172.28.0.4
 
   upbit_producer3:
     <<: *crptostream-common
+    container_name: upbit_producer3
     command: >
       bash -c "
       python -m venv /venv &&
@@ -84,10 +72,11 @@ services:
       /venv/bin/python /CryptoStream/src/upbit_producer.py upbit_producer3"
     networks:
       network_custom:
-        ipv4_address: 172.28.0.6
+        ipv4_address: 172.28.0.5
 
   upbit_dataloader1:
     <<: *crptostream-common
+    container_name: upbit_dataloader1
     command: >
       bash -c "
       python -m venv /venv &&
@@ -95,10 +84,11 @@ services:
       /venv/bin/python /CryptoStream/src/upbit_dataloader.py upbit_dataloader1"
     networks:
       network_custom:
-          ipv4_address: 172.28.0.7
+          ipv4_address: 172.28.0.6
 
   upbit_dataloader2:
     <<: *crptostream-common
+    container_name: upbit_dataloader2
     command: >
       bash -c "
       python -m venv /venv &&
@@ -106,10 +96,11 @@ services:
       /venv/bin/python /CryptoStream/src/upbit_dataloader.py upbit_dataloader2"
     networks:
       network_custom:
-          ipv4_address: 172.28.0.8
+          ipv4_address: 172.28.0.7
 
   upbit_dataloader3:
     <<: *crptostream-common
+    container_name: upbit_dataloader3
     command: >
       bash -c "
       python -m venv /venv &&
@@ -117,10 +108,7 @@ services:
       /venv/bin/python /CryptoStream/src/upbit_dataloader.py upbit_dataloader3"
     networks:
       network_custom:
-          ipv4_address: 172.28.0.9
-
-volumes:
-  postgres-db-volume:
+          ipv4_address: 172.28.0.8
 
 networks:
   network_custom:
