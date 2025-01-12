@@ -137,7 +137,7 @@ terraform을 사용하여 GCP에서 Kafka와 Data Pipeline을 위한 인프라�
 - **Kafka에 추가:** 수집된 데이터를 Kafka의 topic에 추가합니다.
 
 ### Transform & Load
-- **메시지 읽기:** Dataloader가 Kafka에서 메시지를 읽어옵니다.
+- **메시지 읽기:** Dataloader가 Kafka의 topic에서 메시지를 읽어옵니다.
 - **데이터 변환:** JSON 형식의 호가창 데이터를 PostgreSQL 테이블 구조에 맞게 변환합니다.
 - **데이터 저장:** 변환된 데이터를 PostgreSQL에 저장하며, 데이터는 날짜별로 파티셔닝하여 관리됩니다.
 
