@@ -6,7 +6,9 @@ import websockets
 import json
 import time
 import asyncio
-from producer import create_kafka_producer, create_kafka_topic
+
+sys.path.append('/CryptoStream/src/')
+from kafka_sdk.producer import create_kafka_producer, create_kafka_topic
 
 class upbit_producer:
     def __init__(self, producer_name: str):

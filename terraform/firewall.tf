@@ -60,10 +60,10 @@ resource "google_compute_firewall" "allow-kafka-ports" {
 
   allow {
     protocol = "tcp"
-    ports    = ["29092", "9000"]
+    ports    = ["9000"]
   }
 
-  source_ranges = ["0.0.0.0/0"] 
+  source_ranges = ["0.0.0.0/0"]
   target_tags   = ["allow-kafka-ports"]
 }
 

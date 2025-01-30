@@ -8,11 +8,8 @@ x-crptostream-common:
     - ${CRPTOSTREAM_PROJ_DIR:-.}/conf:/CryptoStream/conf
     - ${CRPTOSTREAM_PROJ_DIR:-.}/src:/CryptoStream/src
     - ${CRPTOSTREAM_PROJ_DIR:-.}/logs:/CryptoStream/logs
+    - ${CRPTOSTREAM_PROJ_DIR:-.}/private:/CryptoStream/private
   working_dir: /CryptoStream
-  depends_on:
-    &crptostream-common-depends-on
-    postgres:
-      condition: service_healthy
 
 services:
   postgres:
@@ -45,70 +42,70 @@ services:
       bash -c "
       python -m venv /venv &&
       /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
-      /venv/bin/python /CryptoStream/src/upbit_producer.py upbit_producer1"
+      /venv/bin/python /CryptoStream/src/upbit/upbit_producer.py upbit_producer1"
     networks:
       network_custom:
         ipv4_address: 172.28.0.3
 
-  upbit_producer2:
-    <<: *crptostream-common
-    container_name: upbit_producer2
-    command: >
-      bash -c "
-      python -m venv /venv &&
-      /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
-      /venv/bin/python /CryptoStream/src/upbit_producer.py upbit_producer2"
-    networks:
-      network_custom:
-        ipv4_address: 172.28.0.4
+    upbit_producer2:
+      <<: *crptostream-common
+      container_name: upbit_producer2
+      command: >
+        bash -c "
+        python -m venv /venv &&
+        /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
+        /venv/bin/python /CryptoStream/src/upbit/upbit_producer.py upbit_producer2"
+      networks:
+        network_custom:
+          ipv4_address: 172.28.0.4
+    
+    upbit_producer3:
+      <<: *crptostream-common
+      container_name: upbit_producer3
+      command: >
+        bash -c "
+        python -m venv /venv &&
+        /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
+        /venv/bin/python /CryptoStream/src/upbit/upbit_producer.py upbit_producer3"
+      networks:
+        network_custom:
+          ipv4_address: 172.28.0.5
 
-  upbit_producer3:
+  gcs_consumer1:
     <<: *crptostream-common
-    container_name: upbit_producer3
+    container_name: gcs_consumer1
     command: >
       bash -c "
       python -m venv /venv &&
       /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
-      /venv/bin/python /CryptoStream/src/upbit_producer.py upbit_producer3"
-    networks:
-      network_custom:
-        ipv4_address: 172.28.0.5
-
-  upbit_dataloader1:
-    <<: *crptostream-common
-    container_name: upbit_dataloader1
-    command: >
-      bash -c "
-      python -m venv /venv &&
-      /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
-      /venv/bin/python /CryptoStream/src/upbit_dataloader.py upbit_dataloader1"
+      /venv/bin/python /CryptoStream/src/gcs/gcs_consumer.py gcs_consumer1"
     networks:
       network_custom:
           ipv4_address: 172.28.0.6
 
-  upbit_dataloader2:
-    <<: *crptostream-common
-    container_name: upbit_dataloader2
-    command: >
-      bash -c "
-      python -m venv /venv &&
-      /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
-      /venv/bin/python /CryptoStream/src/upbit_dataloader.py upbit_dataloader2"
-    networks:
-      network_custom:
-          ipv4_address: 172.28.0.7
+    gcs_consumer2:
+      <<: *crptostream-common
+      container_name: gcs_consumer2
+      command: >
+        bash -c "
+        python -m venv /venv &&
+        /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
+        /venv/bin/python /CryptoStream/src/gcs/gcs_consumer.py gcs_consumer2"
+      networks:
+        network_custom:
+            ipv4_address: 172.28.0.7
 
-  upbit_dataloader3:
-    <<: *crptostream-common
-    container_name: upbit_dataloader3
-    command: >
-      bash -c "
-      python -m venv /venv &&
-      /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
-      /venv/bin/python /CryptoStream/src/upbit_dataloader.py upbit_dataloader3"
-    networks:
-      network_custom:
-          ipv4_address: 172.28.0.8
+    gcs_consumer3:
+      <<: *crptostream-common
+      container_name: gcs_consumer3
+      command: >
+        bash -c "
+        python -m venv /venv &&
+        /venv/bin/pip install -r /CryptoStream/src/requirements.txt && 
+        /venv/bin/python /CryptoStream/src/gcs/gcs_consumer.py gcs_consumer3"
+      networks:
+        network_custom:
+            ipv4_address: 172.28.0.8
 
 networks:
   network_custom:
