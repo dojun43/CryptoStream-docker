@@ -34,7 +34,7 @@ class upbit_producer:
         # variables
         self.producer_name = producer_name
         self.topic_name = config.get(producer_name, 'topic_name')
-        self.partition_number = config.get(producer_name, 'partition_number')
+        self.partition_number = int(config.get(producer_name, 'partition_number'))
         self.tickers = config.get(producer_name,'tickers')
         self.tickers = self.tickers.split(',')
 
