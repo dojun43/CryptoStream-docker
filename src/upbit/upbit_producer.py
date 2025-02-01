@@ -34,6 +34,7 @@ class upbit_producer:
         # variables
         self.producer_name = producer_name
         self.topic_name = config.get(producer_name, 'topic_name')
+        self.partition_number = config.get(producer_name, 'partition_number')
         self.tickers = config.get(producer_name,'tickers')
         self.tickers = self.tickers.split(',')
 
@@ -60,7 +61,7 @@ class upbit_producer:
         # create topic
         create_kafka_topic(client_id = self.producer_name, 
                            topic_name = self.topic_name, 
-                           num_partitions = 1, 
+                           num_partitions = 16, 
                            replication_factor = 2)
 
         # webdocket connetion
@@ -73,7 +74,9 @@ class upbit_producer:
                     data = await websocket.recv()
                     data = json.loads(data)
 
-                    kafka_producer.send(self.topic_name, value=json.dumps(data)).get(timeout=5)
+                    kafka_producer.send(self.topic_name, 
+                                        value=json.dumps(data), 
+                                        partition=self.partition_number).get(timeout=5)
 
                 except Exception as e:
                     logging.error(f"upbit producer error: {e}")

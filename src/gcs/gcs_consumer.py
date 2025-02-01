@@ -35,6 +35,7 @@ class gcs_consumer:
         # variables
         self.consumer_name = consumer_name
         self.topic_name = config.get(consumer_name,'topic_name')
+        self.partition_num = config.get(consumer_name,'partition_num')
         self.group_name = config.get(consumer_name,'group_name')
 
         logging.info(f"{self.consumer_name} topic_name: {self.topic_name}")
@@ -46,7 +47,7 @@ class gcs_consumer:
         # create kafka consumer
         self.kafka_consumer = create_kafka_consumer(group_id=self.group_name, 
                                                     topic_name=self.topic_name, 
-                                                    partition_num=0
+                                                    partition_num=self.partition_num
                                                     )
 
     def transform_data(self, up_data: dict[str, any]) -> dict:
