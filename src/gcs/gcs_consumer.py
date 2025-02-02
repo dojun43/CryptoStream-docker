@@ -4,7 +4,8 @@ import configparser
 import logging
 import time
 import json
-from datetime import datetime, timedelta
+import concurrent.futures
+from datetime import datetime
 from zoneinfo import ZoneInfo
 from connection import connect_to_gcs
 
@@ -62,6 +63,18 @@ class gcs_consumer:
 
         return return_dict
 
+    def upload_to_gcs(self, up_data: dict[str, any]):
+        path = up_data["timestamp_date"].strftime("%Y/%m/%d/%H/%M")
+        blob_name = f"{up_data['ticker']}/{path}/{up_data['ticker']}-{str(up_data['timestamp'])}.json"
+        
+        up_data['timestamp_date'] = str(up_data['timestamp_date'])
+
+        blob = self.bucket.blob(blob_name)
+        blob.upload_from_string(
+            data=json.dumps(up_data),  
+            content_type='orderbook/json' 
+        )
+
     def main(self):                
         while True:
             try:
@@ -69,22 +82,13 @@ class gcs_consumer:
                 msg = self.kafka_consumer.poll(timeout_ms=5000)
 
                 if msg:
-                    for topic_partition, messages in msg.items():
-                        for message in messages:
-                            up_data = json.loads(message.value)
-                            up_data = self.transform_data(up_data)
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                        for topic_partition, messages in msg.items():
+                            for message in messages:
+                                up_data = json.loads(message.value)
+                                up_data = self.transform_data(up_data)
 
-                            # upload json
-                            path = up_data["timestamp_date"].strftime("%Y/%m/%d/%H/%M")
-                            blob_name = f"{up_data['ticker']}/{path}/{up_data['ticker']}_{str(up_data['timestamp'])}.json"
-                            
-                            up_data['timestamp_date'] = str(up_data['timestamp_date'])
-
-                            blob = self.bucket.blob(blob_name)
-                            blob.upload_from_string(
-                                data=json.dumps(up_data),  
-                                content_type='orderbook/json' 
-                            )
+                                executor.submit(self.upload_to_gcs, up_data)
                     
                     self.kafka_consumer.commit()
 
