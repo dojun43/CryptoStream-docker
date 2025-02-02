@@ -2,7 +2,9 @@ venv
 test
 logs
 
+.env
 private
+
 /terraform/.terraform*
 /terraform/terraform*
 
