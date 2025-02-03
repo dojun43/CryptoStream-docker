@@ -2,7 +2,7 @@
 ## Overview
 암호화폐 거래소인 Upbit에서 제공하는 실시간 호가창 데이터를 추출하고 저장하기 위한 데이터 파이프라인 입니다.
 
-WebSocket을 통해 실시간으로 호가창 데이터를 수신받고, 메시지 브로커인 kafka에 저장하고, 메시지를 읽어와 변환 후 PostgreSQL에 데이터를 적재하도록 설계했습니다. 
+WebSocket을 통해 실시간으로 호가창 데이터를 수신받고, 메시지 브로커인 kafka에 저장하고, 메시지를 읽어와 GCS bucket에 데이터를 적재하도록 설계했습니다. 
 ## Getting Started
 ### Prerequisites
 - Google Cloud Platform (GCP) 계정
@@ -51,7 +51,7 @@ KAFKA_NODE3_EXTERNAL_IP=[kafka-node3 외부 IP]
 ```
 sudo docker compose -f docker-compose-kafka1.yaml up -d   # kafka-node1
 sudo docker compose -f docker-compose-kafka2.yaml up -d   # kafka-node2
-sudo docker compose -f docker-compose-kafka3.yaml up -d   # kafka-node1
+sudo docker compose -f docker-compose-kafka3.yaml up -d   # kafka-node3
 ```
 - kafka ui로 접속하여 kafka cluster가 정상적으로 실행 중인지 확인합니다. kafka ui는 kafka-node1에서 실행됩니다.
 ```
@@ -59,11 +59,14 @@ sudo docker compose -f docker-compose-kafka3.yaml up -d   # kafka-node1
 ```
 
 3. Data Pipeline 구성 (cryptostream-node1에서 해당 태스크 수행)
-- .env 파일에 DB 접속 정보와 kafka 노드의 내부 IP를 입력합니다.
+- .env 파일에 gcp_account.json의 경로, bucket 이름, DB 접속 정보, kafka 노드의 내부 IP를 입력합니다.
 ```
 cd /data/CryptoStream-docker
 sudo vi .env
 
+
+KEY_PATH="/CryptoStream/private/gcp_account.json"
+BUCKET_NAME="your_bucket_name"
 
 POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
@@ -75,43 +78,51 @@ KAFKA_NODE2_INTERNAL_IP=192.168.0.3
 KAFKA_NODE3_INTERNAL_IP=192.168.0.4
 ```
 
-- producer.conf에서 각각의 producer가 사용할 topic의 이름과 구독할 ticker의 목록을 지정합니다.
+- producer.conf에서 각각의 producer가 사용할 topic의 이름, patition의 번호, 구독할 ticker의 목록을 지정합니다.
 ```
 sudo vi /data/CryptoStream-docker/conf/producer.conf
 
 
 [upbit_producer1]
-topic_name=orderbook1
-tickers=BTC,ETH
+topic_name=orderbook
+partition_number=0
+tickers=BTC,ETH,NEO,MTL,XRP,ETC,SNT,WAVES,XEM,QTUM
 
 [upbit_producer2]
-topic_name=orderbook2
-tickers=SOL,ETC
+topic_name=orderbook
+partition_number=1
+tickers=LSK,STEEM,XLM,ARDR,ARK,STORJ,GRS,ADA,SBD,POWR
 
 [upbit_producer3]
-topic_name=orderbook3
-tickers=XRP,BCH
+topic_name=orderbook
+partition_number=2
+tickers=ICX,EOS,TRX,SC,ONT,ZIL,POLYX,ZRX,LOOM,BCH
+
+...
+
 ```
 
-- dataloader.conf에서 각각의 dataloader가 읽어올 topic의 이름, topic을 소비하는 그룹명, Postgres에 commit할 row의 수를 지정합니다.
+- consumer.conf에서 각각의 consumer 읽어올 topic의 이름, patition의 번호, topic을 소비하는 그룹명을 지정합니다.
 ```
-sudo vi /data/CryptoStream-docker/conf/dataloader.conf
+sudo vi /data/CryptoStream-docker/conf/consumer.conf
 
 
-[upbit_dataloader1]
-topic_name=orderbook1
-group_name=upbit_dataloader1
-commit_count=1
+[gcs_consumer1]
+topic_name=orderbook
+partition_number=0
+group_name=gcs_consumer
 
-[upbit_dataloader2]
-topic_name=orderbook2
-group_name=upbit_dataloader2
-commit_count=1
+[gcs_consumer2]
+topic_name=orderbook
+partition_number=1
+group_name=gcs_consumer
 
-[upbit_dataloader3]
-topic_name=orderbook3
-group_name=upbit_dataloader3
-commit_count=1
+[gcs_consumer3]
+topic_name=orderbook
+partition_number=2
+group_name=gcs_consumer
+
+...
 ```
 
 - docker-compose.yaml 파일을 사용하여 Data Pipeline을 실행합니다.
@@ -123,25 +134,24 @@ terraform을 사용하여 GCP에서 Kafka와 Data Pipeline을 위한 인프라�
 - **VM:** kafka node 3개와 data pipeline node 1개를 생성했습니다.
 - **VPC:** Kafka와 Data Pipeline 간 내부 통신을 위해 cryptostream-subnet 서브넷을 생성하고, 모든 VM을 해당 서브넷에 배치했습니다.
 - **Persistant Disk:** Kafka와 PostgreSQL의 데이터를 저장하기 위해 Persistant Disk를 생성했습니다.
+- **GCS Bucket:** JSON 타입의 호가창 데이터를 저장하기 위한 GCS Bucket을 생성했습니다.
 
-![image](https://github.com/user-attachments/assets/c7e70844-82c1-4403-bd6e-4f3b3fed75e9)
+![image](https://github.com/user-attachments/assets/473e2975-acc5-4520-bae8-3cdb9d2d20d4)
+
 
 ## Data Pipeline
-![image](https://github.com/user-attachments/assets/b6219dde-fd36-40d7-99bb-b7a901a15ab5)
+![image](https://github.com/user-attachments/assets/066e70d3-19d0-489c-bea4-18694a5bd275)
+
 
 ### Data Sources
 - **upbit 호가창 데이터:** https://docs.upbit.com/reference/general-info
 
 ### Extract
 - **데이터 수집:** Upbit Producer에서 WebSocket 방식으로 호가창 데이터를 구독하여 실시간으로 수집합니다.
-- **Kafka에 추가:** 수집된 데이터를 Kafka의 topic에 추가합니다.
+- **Kafka에 전송:** 수집된 데이터를 Kafka의 topic에 전송합니다.
 
-### Transform & Load
-- **메시지 읽기:** Dataloader가 Kafka의 topic에서 메시지를 읽어옵니다.
-- **데이터 변환:** JSON 형식의 호가창 데이터를 PostgreSQL 테이블 구조에 맞게 변환합니다.
-- **데이터 저장:** 변환된 데이터를 PostgreSQL에 저장하며, 데이터는 날짜별로 파티셔닝하여 관리됩니다.
-
-### Visualization
-- PostgreSQL과 Superset을 연동 후 적재한 데이터를 SQL 구문을 활용해서 변환합니다.
-- 수집한 암호화폐의 시세를 기간 별로 시각화합니다.
-<img width="880" alt="image" src="https://github.com/user-attachments/assets/308bffa1-e05f-468c-a70c-396626cd0cb4" />
+### Load
+- **메시지 읽기:** GCS Consumer가 Kafka의 topic에서 메시지를 읽어옵니다.
+- **데이터 적재:** JSON 타입의 호가창 데이터를 Ticker와 시간 별로 파티셔닝하여 GCS Bucket에 적재합니다.
+     
+  - 예시: ticker=BTC/year=2025/month=02/day=02/hour=16/minute=16
