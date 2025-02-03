@@ -10,7 +10,7 @@ WebSocket을 통해 실시간으로 호가창 데이터를 수신받고, 메시�
 ### Setup
 해당 프로젝트는 Google Cloud Platform과 Docker에서 동작합니다. 아래 단계에 따라 환경을 설정하고, 필요한 의존성 설치 및 구성 방법을 안내합니다.
 1. Google Cloud 인프라 구성 (Terraform 사용)
-- gcp service account json파일을 git repository home의 private 경로에 생성합니다.
+- gcp service account json 파일을 git repository home의 private 경로에 생성합니다.
 ```
 CryptoStream-docker/private/gcp_account.json
 ```
@@ -59,7 +59,11 @@ sudo docker compose -f docker-compose-kafka3.yaml up -d   # kafka-node3
 ```
 
 3. Data Pipeline 구성 (cryptostream-node1에서 해당 태스크 수행)
-- .env 파일에 gcp_account.json의 경로, bucket 이름, DB 접속 정보, kafka 노드의 내부 IP를 입력합니다.
+- gcp service account json 파일을 해당 경로에 생성합니다.
+```
+/data/CryptoStream-docker/private/gcp_account.json
+```
+- .env 파일에 컨테이너 내부의 gcp_account.json의 경로, bucket 이름, DB 접속 정보, kafka 노드의 내부 IP를 입력합니다.
 ```
 cd /data/CryptoStream-docker
 sudo vi .env
