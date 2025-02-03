@@ -2,10 +2,13 @@ venv
 test
 logs
 
+.env
 private
+
 /terraform/.terraform*
 /terraform/terraform*
 
 src/__*
+*__pycache__
 
 README.md
