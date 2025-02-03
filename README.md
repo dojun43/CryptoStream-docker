@@ -144,7 +144,7 @@ terraform을 사용하여 GCP에서 Kafka와 Data Pipeline을 위한 인프라�
 
 
 ## Data Pipeline
-![image](https://github.com/user-attachments/assets/066e70d3-19d0-489c-bea4-18694a5bd275)
+![image](https://github.com/user-attachments/assets/d53d110b-92ca-4990-b17b-628110fb1d24)
 
 
 ### Data Sources
