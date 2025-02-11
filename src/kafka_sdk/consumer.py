@@ -19,7 +19,9 @@ def create_kafka_consumer(group_id, topic_name, partition_num):
                 auto_offset_reset='earliest',  
                 enable_auto_commit=False, 
                 value_deserializer=lambda x: x.decode('utf-8'),
-                fetch_max_wait_ms=0
+                fetch_max_wait_ms=10000,
+                fetch_min_bytes=750000,
+                max_partition_fetch_bytes=750000
             )
 
             partition = TopicPartition(topic_name, partition_num) 
