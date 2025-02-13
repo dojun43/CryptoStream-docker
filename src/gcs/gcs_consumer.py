@@ -76,7 +76,7 @@ class gcs_consumer:
             blob = self.bucket.blob(blob_name)
             blob.upload_from_string(
                 data=jsonl_data, 
-                content_type="orderbook/jsonl"
+                content_type="application/json"
                 )
 
     def main(self):                
