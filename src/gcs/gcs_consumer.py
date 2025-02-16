@@ -5,6 +5,7 @@ import logging
 import time
 import json
 import concurrent.futures
+from collections import defaultdict
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from connection import connect_to_gcs
@@ -63,33 +64,45 @@ class gcs_consumer:
 
         return return_dict
 
-    def upload_to_gcs(self, up_data: dict[str, any]):
-        path = up_data["timestamp_date"].strftime("%Y/%m/%d/%H/%M")
-        blob_name = f"{up_data['ticker']}/{path}/{up_data['ticker']}-{str(up_data['timestamp'])}.json"
-        
-        up_data['timestamp_date'] = str(up_data['timestamp_date'])
+    def upload_buffer_to_gcs(self, buffer: dict[str, any]):
+        for partition_key, data_list in buffer.items():
+            # JSONL 포맷으로 변환
+            jsonl_data = "\n".join(json.dumps(d) for d in data_list)
 
-        blob = self.bucket.blob(blob_name)
-        blob.upload_from_string(
-            data=json.dumps(up_data),  
-            content_type='orderbook/json' 
-        )
+            # GCS 업로드
+            last_data = data_list[-1]
+            blob_name = f"{partition_key}/{last_data['ticker']}-{str(last_data['timestamp'])}.jsonl"
+
+            blob = self.bucket.blob(blob_name)
+            blob.upload_from_string(
+                data=jsonl_data, 
+                content_type="application/json"
+                )
 
     def main(self):                
         while True:
             try:
                 # 메시지 처리
-                msg = self.kafka_consumer.poll(timeout_ms=5000)
+                msg = self.kafka_consumer.poll(timeout_ms=20000)
+                buffer = defaultdict(list)
 
                 if msg:
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-                        for topic_partition, messages in msg.items():
-                            for message in messages:
-                                up_data = json.loads(message.value)
-                                up_data = self.transform_data(up_data)
+                    for topic_partition, messages in msg.items():
+                        for message in messages:
+                            up_data = json.loads(message.value)
+                            up_data = self.transform_data(up_data)
+                            
+                            # 파티션 키 생성
+                            partition_date = up_data["timestamp_date"].strftime("%Y/%m/%d/%H/%M")
+                            partition_key = f"{up_data['ticker']}/{partition_date}"
 
-                                executor.submit(self.upload_to_gcs, up_data)
+                            # timestamp_date 포멧 변경
+                            up_data["timestamp_date"] = str(up_data["timestamp_date"])
+
+                            # 버퍼에 데이터 추가
+                            buffer[partition_key].append(up_data)
                     
+                    self.upload_buffer_to_gcs(buffer)
                     self.kafka_consumer.commit()
 
             except Exception as e:                
