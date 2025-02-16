@@ -7,7 +7,7 @@ variable "credentials" {
 
 variable "project" {
   description = "GCP 프로젝트 ID"
-  default = "cryptostream-docker-447702" 
+  default = "cryptostream-docker-450512" 
 }
 
 variable "region" {

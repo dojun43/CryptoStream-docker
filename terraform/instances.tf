@@ -23,6 +23,11 @@ resource "google_compute_address" "kafka-node3-static-ip" {
   region  = var.region
 }
 
+resource "google_compute_address" "airflow-node1-static-ip" {
+  name   = "airflow-node1-static-ip"
+  project = var.project
+  region  = var.region
+}
 
 
 # instances
@@ -35,6 +40,7 @@ resource "google_compute_instance" "cryptostream-node1" {
   boot_disk {
     initialize_params {
       image = "ubuntu-os-cloud/ubuntu-2204-lts"
+      size  = 20
     }
   }
 
@@ -147,4 +153,35 @@ resource "google_compute_instance" "kafka-node3" {
   metadata_startup_script = file("kafka_node_startup_script.sh")
 
   tags = ["allow-ssh", "allow-icmp", "allow-kafka-ports", "allow-kafka-inner-ports"]
+}
+
+resource "google_compute_instance" "airflow-node1" {
+  name         = "airflow-node1"
+  machine_type = "e2-highcpu-16"
+  zone         = var.zone
+
+  boot_disk {
+    initialize_params {
+      image = "ubuntu-os-cloud/ubuntu-2204-lts"
+      size  = 20
+    }
+  }
+
+  attached_disk {
+    source      = google_compute_disk.airflow-node1-disk.id
+    device_name = "airflow-node1-disk"
+  }
+
+  network_interface {
+    network = google_compute_network.cryptostream-network.name
+    subnetwork = google_compute_subnetwork.cryptostream-subnet.name
+    network_ip = "192.168.0.6"
+    access_config {
+      nat_ip = google_compute_address.airflow-node1-static-ip.address
+    }
+  }
+
+  metadata_startup_script = file("airflow_node_startup_script.sh")
+
+  tags = ["allow-ssh", "allow-icmp", "allow-airflow", "allow-jupyterlab", "allow-flower"]
 }

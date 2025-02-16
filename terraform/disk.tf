@@ -25,3 +25,10 @@ resource "google_compute_disk" "kafka-node3-disk" {
   size  = 268 
   type  = "pd-standard"
 }
+
+resource "google_compute_disk" "airflow-node1-disk" {
+  name  = "airflow-node1-disk"
+  zone  = var.zone
+  size  = 100 
+  type  = "pd-standard"
+}
