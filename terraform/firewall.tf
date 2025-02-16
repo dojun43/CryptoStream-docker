@@ -39,6 +39,48 @@ resource "google_compute_firewall" "allow-superset" {
   target_tags   = ["allow-superset"]
 }
 
+resource "google_compute_firewall" "allow-airflow" {
+  name    = "allow-airflow"
+  project = var.project
+  network = google_compute_network.cryptostream-network.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["8080"]
+  }
+
+  source_ranges = ["0.0.0.0/0"] 
+  target_tags   = ["allow-airflow"]
+}
+
+resource "google_compute_firewall" "allow-jupyterlab" {
+  name    = "allow-jupyterlab"
+  project = var.project
+  network = google_compute_network.cryptostream-network.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["8888"]
+  }
+
+  source_ranges = ["0.0.0.0/0"] 
+  target_tags   = ["allow-jupyterlab"]
+}
+
+resource "google_compute_firewall" "allow-flower" {
+  name    = "allow-flower"
+  project = var.project
+  network = google_compute_network.cryptostream-network.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["5555"]
+  }
+
+  source_ranges = ["0.0.0.0/0"] 
+  target_tags   = ["allow-flower"]
+}
+
 resource "google_compute_firewall" "allow-postgres" {
   name    = "allow-postgres"
   project = var.project
