@@ -1,8 +1,9 @@
 # CrytoStream 
 ## Overview
-암호화폐 거래소인 Upbit에서 제공하는 실시간 호가창 데이터를 추출하고 저장하기 위한 데이터 파이프라인 입니다.
+암호화폐 거래소 Upbit의 실시간 호가창 데이터를 추출하고 적재하기 위한 데이터 파이프라인입니다. Streaming과 Batch 형태로 데이터를 처리하도록 설계했습니다.
+- **Streaming 처리:** WebSocket을 통해 실시간으로 호가창 데이터를 수신하고, 이를 메시지 브로커인 Kafka에 저장한 후, 메시지를 읽어 GCS Bucket에 적재합니다.
+- **Batch 처리:** 5분 간격으로 GCS Bucket에서 JSON 데이터를 읽어 Parquet 형식으로 변환한 뒤, 데이터를 시가·고가·저가·종가(OHLC)로 가공하여 ohlc_5m_ticker 테이블에 적재합니다.
 
-WebSocket을 통해 실시간으로 호가창 데이터를 수신받고, 메시지 브로커인 kafka에 저장하고, 메시지를 읽어와 GCS bucket에 데이터를 적재하도록 설계했습니다. 
 ## Getting Started
 ### Prerequisites
 - Google Cloud Platform (GCP) 계정
@@ -133,29 +134,49 @@ group_name=gcs_consumer
 ```
 sudo docker compose -f docker-compose.yaml up -d 
 ```
-## Infra Architecture
-terraform을 사용하여 GCP에서 Kafka와 Data Pipeline을 위한 인프라를 프로비저닝 했습니다. 생성한 리소스들은 다음과 같습니다.
-- **VM:** kafka node 3개와 data pipeline node 1개를 생성했습니다.
-- **VPC:** Kafka와 Data Pipeline 간 내부 통신을 위해 cryptostream-subnet 서브넷을 생성하고, 모든 VM을 해당 서브넷에 배치했습니다.
-- **Persistant Disk:** Kafka와 PostgreSQL의 데이터를 저장하기 위해 Persistant Disk를 생성했습니다.
-- **GCS Bucket:** JSON 타입의 호가창 데이터를 저장하기 위한 GCS Bucket을 생성했습니다.
 
-![image](https://github.com/user-attachments/assets/473e2975-acc5-4520-bae8-3cdb9d2d20d4)
+4. Airflow 구성 (airflow-node1에서 해당 태스크 수행)
+- Airflow를 초기화하고 실행합니다.
+```
+cd /data/CryptoStream-docker/airflow
+
+
+sudo docker compose up airflow-init
+sudo docker compose up -d
+```
+- airflow webserver에 접속한 뒤 [Admin]->[connections]에서 gcp_account.json와 cryptostream-node1의 DB 접속 정보를 'conn-gcp-cryptostream'와 'conn-postgres'에 등록합니다.
+
+![image](https://github.com/user-attachments/assets/125ef979-2e46-4afd-a43d-fe286853b346)
+
+
+## Infra Architecture
+terraform을 사용하여 GCP에서 Kafka, Data Pipeline, Airflow을 위한 인프라를 프로비저닝 했습니다. 생성한 리소스들은 다음과 같습니다.
+- **VM:** kafka node 3개, data pipeline node 1개, airflow node 1개를 생성했습니다.
+- **VPC:** Kafka와 Data Pipeline 간 내부 통신을 위해 cryptostream-subnet 서브넷을 생성하고, 모든 VM instance를 해당 서브넷에 배치했습니다.
+- **Persistant Disk:** Kafka와 PostgreSQL의 데이터를 저장하기 위해 각각의 node 마다 Persistant Disk를 생성했습니다.
+- **GCS Bucket:** JSON 타입의 호가창 데이터와 변환된 Parquet 파일을 저장하기 위한 Bucket을 2개 생성했습니다.
+  
+![image](https://github.com/user-attachments/assets/11db8594-77d1-4561-974c-121ade3d19f0)
+
 
 
 ## Data Pipeline
-![image](https://github.com/user-attachments/assets/d53d110b-92ca-4990-b17b-628110fb1d24)
+![image](https://github.com/user-attachments/assets/d8464379-ad5d-41e2-bcbf-36aa6d08da93)
 
 
 ### Data Sources
 - **upbit 호가창 데이터:** https://docs.upbit.com/reference/general-info
 
-### Extract
+### Streaming
 - **데이터 수집:** Upbit Producer에서 WebSocket 방식으로 호가창 데이터를 구독하여 실시간으로 수집합니다.
 - **Kafka에 전송:** 수집된 데이터를 Kafka의 topic에 전송합니다.
-
-### Load
 - **메시지 읽기:** GCS Consumer가 Kafka의 topic에서 메시지를 읽어옵니다.
 - **데이터 적재:** JSON 타입의 호가창 데이터를 Ticker와 시간 별로 파티셔닝하여 GCS Bucket에 적재합니다.
      
-  - 예시: ticker=BTC/year=2025/month=02/day=02/hour=16/minute=16
+  - 예시: ticker=BTC/year=2025/month=02/day=02/hour=16/minute=16/filename=ticker-timestamp.jsonl
+
+### Batch
+- **JSON 데이터를 Parquet 데이터로 변환:** 5분 간격으로 GCS Bucket에 적재된 JSON 데이터를 읽어서, Parquet로 변환 뒤 GCS Bucket에 시간 별로 파티셔닝하여 적재합니다.
+
+    - 예시: ticker=BTC/year=2025/month=02/day=02/hour=16/filename=ticker-202502021605.parquet
+- **데이터 변환 후 Postgres table에 적재:** GCS Bucket에서 5분 간격으로 생성된 Parquet 파일을 읽어오고, 시가·고가·저가·종가(OHLC) 데이터로 가공하여 ohlc_5m_ticker 테이블에 적재합니다.  
