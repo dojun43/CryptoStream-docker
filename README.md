@@ -10,7 +10,8 @@
 - Terraform v1.10.0
 ### Setup
 해당 프로젝트는 Google Cloud Platform과 Docker에서 동작합니다. 아래 단계에 따라 환경을 설정하고, 필요한 의존성 설치 및 구성 방법을 안내합니다.
-1. Google Cloud 인프라 구성 (Terraform 사용)
+
+**1. Google Cloud 인프라 구성 (Terraform 사용)**
 - gcp service account json 파일을 git repository home의 private 경로에 생성합니다.
 ```
 CryptoStream-docker/private/gcp_account.json
@@ -33,7 +34,7 @@ terraform init
 terraform apply
 ```
 
-2. Kafka cluster 구성 (kafka-node1, kafka-node2, kafka-node3에서 해당 태스크 수행)
+**2. Kafka cluster 구성 (kafka-node1, kafka-node2, kafka-node3에서 해당 태스크 수행)**
 - .env에 kafka 노드의 내부 IP와 외부 IP 정보를 입력합니다.
 ```
 cd /data/CryptoStream-docker/kafka
@@ -59,7 +60,7 @@ sudo docker compose -f docker-compose-kafka3.yaml up -d   # kafka-node3
 [kafka-node1 외부 IP]:9000
 ```
 
-3. Data Pipeline 구성 (cryptostream-node1에서 해당 태스크 수행)
+**3. Data Pipeline 구성 (cryptostream-node1에서 해당 태스크 수행)**
 - gcp service account json 파일을 해당 경로에 생성합니다.
 ```
 /data/CryptoStream-docker/private/gcp_account.json
@@ -135,7 +136,7 @@ group_name=gcs_consumer
 sudo docker compose -f docker-compose.yaml up -d 
 ```
 
-4. Airflow 구성 (airflow-node1에서 해당 태스크 수행)
+**4. Airflow 구성 (airflow-node1에서 해당 태스크 수행)**
 - Airflow를 초기화하고 실행합니다.
 ```
 cd /data/CryptoStream-docker/airflow
