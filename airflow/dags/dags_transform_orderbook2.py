@@ -15,7 +15,7 @@ with DAG(
     catchup=False,
 ) as dag:
     
-    ticker_list = ["LSK","STEEM","XLM","ARDR","ARK","STORJ","GRS","ADA","SBD","POWR"]
+    ticker_list = ["LSK","STEEM","XLM","ARDR","ARK","STORJ","GRS","ADA","POWR"]
     
     gcs_orderbook_5m_sensor_tasks = [
             GcsOrderbook5mSensor(
